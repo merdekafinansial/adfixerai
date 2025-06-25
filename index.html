@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AdFixer.AI - Analisis Kampanye Iklan Berbasis AI</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- PapaParse for CSV parsing -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <!-- jsPDF and html2canvas for PDF generation -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f5f9; }
+        ::-webkit-scrollbar-thumb { background: #60a5fa; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #3b82f6; }
+
+        #report-content .report-section-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-top: 2rem;
+            margin-bottom: 1rem;
+            color: #1e3a8a;
+            border-bottom: 2px solid #dbeafe;
+            padding-bottom: 0.5rem;
+        }
+        #report-content p, #report-content ul {
+            margin-bottom: 1rem;
+            line-height: 1.7;
+            color: #334155;
+        }
+        #report-content ul {
+            list-style-type: '📌  ';
+            padding-left: 1.5rem;
+        }
+        #report-content table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }
+        #report-content th, #report-content td {
+            border: 1px solid #e2e8f0;
+            padding: 0.75rem;
+            text-align: left;
+        }
+        #report-content th {
+            background-color: #f1f5f9;
+            font-weight: 600;
+        }
+        .ad-recommendation-card {
+            background-color: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-left: 4px solid #3b82f6;
+            padding: 1rem;
+            margin-top: 1rem;
+            border-radius: 0.5rem;
+        }
+        .ad-recommendation-card .ad-title {
+            font-weight: bold;
+            font-size: 1.1rem;
+            color: #1e40af;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800">
+
+    <div class="container mx-auto p-4 md:p-8">
+        <header class="text-center mb-10">
+            <h1 class="text-4xl md:text-5xl font-bold text-blue-800">AdFixer.AI</h1>
+            <p class="text-slate-500 mt-2 text-lg">Dapatkan Analisis dan Strategi Iklan Profesional Berbasis AI.</p>
+        </header>
+
+        <main class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <!-- Input Section -->
+            <div class="bg-white p-6 rounded-2xl shadow-lg border border-slate-200">
+                <h2 class="text-2xl font-bold mb-4 text-blue-700">1. Masukkan Detail Kampanye</h2>
+                <form id="ad-form">
+                    <div class="space-y-4">
+                        <div><label for="csv-file" class="block mb-2 font-medium text-slate-700">Unggah Laporan Iklan Meta (CSV)</label><input type="file" id="csv-file" accept=".csv" required class="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 transition-colors duration-200"/></div>
+                        <div><label for="product-description" class="block mb-2 font-medium text-slate-700">Deskripsi Produk</label><textarea id="product-description" rows="3" required class="w-full p-3 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition" placeholder="Contoh: Sepatu lari berkualitas tinggi dan ramah lingkungan untuk atlet urban."></textarea></div>
+                        <div><label for="campaign-goal" class="block mb-2 font-medium text-slate-700">Tujuan Utama Kampanye</label><select id="campaign-goal" required class="w-full p-3 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"><option value="purchase">Pembelian</option><option value="leads">Prospek (Leads)</option><option value="awareness">Kesadaran Merek (Awareness)</option></select></div>
+                        <div><label for="campaign-problem" class="block mb-2 font-medium text-slate-700">Masalah Utama Kampanye</label><select id="campaign-problem" required class="w-full p-3 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"><option value="low-roas">ROAS Rendah</option><option value="low-ctr">CTR Rendah</option><option value="high-cpm">CPM Tinggi</option><option value="low-cpr">Biaya per Hasil Tinggi</option></select></div>
+                        <div><label for="target-audience" class="block mb-2 font-medium text-slate-700">Siapa Target Audiens Anda?</label><input type="text" id="target-audience" required class="w-full p-3 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition" placeholder="Contoh: Pria & wanita, 25-40, tertarik pada kebugaran."></div>
+                        <div><label for="ad-style" class="block mb-2 font-medium text-slate-700">Gaya Iklan yang Diinginkan</label><select id="ad-style" required class="w-full p-3 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"><option value="Storytelling">Storytelling (Bercerita)</option><option value="Strike">Strike (Langsung ke Penawaran)</option></select></div>
+                        <div><label for="image-type" class="block mb-2 font-medium text-slate-700">Jenis Gambar yang Ingin Dihasilkan</label><select id="image-type" required class="w-full p-3 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"><option value="Realistis">Realistis</option><option value="Kartun">Kartun</option><option value="Hyperrealistic">Hyperrealistic</option><option value="3D">3D</option><option value="2D">2D</option></select></div>
+                    </div>
+                    <button type="submit" id="generate-button" class="mt-6 w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-300 transition-all duration-300 transform hover:scale-105">Buat Analisis AI</button>
+                </form>
+            </div>
+
+            <!-- Output Section -->
+            <div id="output-section" class="bg-white p-6 rounded-2xl shadow-lg border border-slate-200 lg:h-[85vh] lg:overflow-y-auto">
+                <div id="placeholder" class="flex flex-col items-center justify-center h-full text-center">
+                    <svg class="w-16 h-16 text-blue-200 mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 0 0 2.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 0 0-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 0 0 .75-.75 2.25 2.25 0 0 0-.1-.664m-5.8 0A2.251 2.251 0 0 1 5.25 6h.008a2.25 2.25 0 0 1 2.242 2.135M11.25 3c.056 0 .1.044.1.1v1.5a.75.75 0 0 1-.75.75h-1.5a.75.75 0 0 1-.75-.75V3.1c0-.056.044-.1.1-.1h2.15Z" /></svg>
+                    <h2 class="text-xl font-semibold text-slate-600">Laporan AI Anda Akan Muncul di Sini</h2>
+                    <p class="text-slate-400 mt-1">Isi formulir dan unggah data Anda untuk memulai.</p>
+                </div>
+                <div id="loader" class="hidden flex-col items-center justify-center h-full"><div class="w-16 h-16 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin"></div><p class="mt-4 text-slate-500 font-medium">Menganalisis data Anda...</p></div>
+                <div id="report-container" class="hidden">
+                    <div class="flex justify-between items-center mb-4"><h2 class="text-2xl font-bold text-blue-700">Laporan & Strategi Iklan</h2><button id="download-pdf" class="bg-slate-100 text-slate-700 font-semibold py-2 px-4 rounded-lg hover:bg-slate-200 focus:outline-none focus:ring-2 focus:ring-slate-400 transition-colors">Unduh PDF</button></div>
+                    <div id="report-content"></div>
+                </div>
+                <div id="error-message" class="hidden text-center p-4 bg-red-50 text-red-700 rounded-lg"><p id="error-text"></p></div>
+            </div>
+        </main>
+    </div>
+
+    <script type="module">
+        const adForm = document.getElementById('ad-form');
+        const csvFileInput = document.getElementById('csv-file');
+        const placeholder = document.getElementById('placeholder');
+        const loader = document.getElementById('loader');
+        const reportContainer = document.getElementById('report-container');
+        const reportContent = document.getElementById('report-content');
+        const downloadPdfButton = document.getElementById('download-pdf');
+        const errorMessage = document.getElementById('error-message');
+        const errorText = document.getElementById('error-text');
+
+        adForm.addEventListener('submit', handleFormSubmit);
+        downloadPdfButton.addEventListener('click', downloadReportAsPDF);
+
+        async function handleFormSubmit(e) {
+            e.preventDefault();
+            if (!csvFileInput.files[0]) {
+                displayError("Silakan unggah file CSV.");
+                return;
+            }
+            resetUI();
+            loader.classList.add('flex');
+            placeholder.classList.add('hidden');
+            try {
+                const csvDataString = await parseCsv(csvFileInput.files[0]);
+                if (!csvDataString) return;
+                const formData = {
+                    productDescription: document.getElementById('product-description').value,
+                    campaignGoal: document.getElementById('campaign-goal').value,
+                    campaignProblem: document.getElementById('campaign-problem').value,
+                    targetAudience: document.getElementById('target-audience').value,
+                    adStyle: document.getElementById('ad-style').value,
+                    imageType: document.getElementById('image-type').value,
+                };
+                
+                const diagnosisPart = await getDiagnosisReport(formData, csvDataString);
+                const planningPart = await getPlanningReport(formData);
+                const creativePart = await getCreativeReport(formData);
+
+                const fullReport = { ...diagnosisPart, ...planningPart, ...creativePart };
+
+                displayReport(fullReport);
+            } catch (err) {
+                console.error("Terjadi kesalahan:", err);
+                displayError(err.message || "Terjadi kesalahan tak terduga.");
+            } finally {
+                loader.classList.remove('flex');
+            }
+        }
+
+        function parseCsv(file) {
+            return new Promise((resolve, reject) => {
+                Papa.parse(file, {
+                    header: true, preview: 15, skipEmptyLines: true,
+                    complete: (r) => r.errors.length ? (console.error("CSV Parsing Errors:", r.errors), displayError("Gagal mem-parsing file CSV."), reject()) : resolve(Papa.unparse(r.data)),
+                    error: (err) => (console.error("PapaParse Error:", err), displayError("Kesalahan kritis saat membaca file."), reject(err))
+                });
+            });
+        }
+        
+        async function makeApiCall(prompt, schema) {
+            const payload = {
+                contents: [{ role: "user", parts: [{ text: prompt }] }],
+                generationConfig: { responseMimeType: "application/json", responseSchema: schema }
+            };
+            const apiKey = "";
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+            
+            const response = await fetch(apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+            if (!response.ok) {
+                 console.error("API Error Response:", await response.text());
+                 throw new Error(`Permintaan API gagal. Status: ${response.status}.`);
+            }
+            
+            const result = await response.json();
+            if (result.candidates?.[0]?.content?.parts?.[0]?.text) {
+                try { return JSON.parse(result.candidates[0].content.parts[0].text); } catch (e) {
+                    console.error("Gagal parsing JSON dari AI:", result.candidates[0].content.parts[0].text);
+                    throw new Error("Menerima respons JSON yang tidak valid dari AI.");
+                }
+            }
+            if (result.candidates?.[0]?.finishReason === 'SAFETY' || result.candidates?.[0]?.finishReason === 'RECITATION') {
+                 throw new Error("Respons dari AI diblokir karena alasan keamanan atau sitasi.");
+            }
+            throw new Error("Menerima respons tidak valid atau kosong dari AI.");
+        }
+
+        async function getDiagnosisReport(formData, csvData) {
+            const prompt = `
+            Anda adalah AdFixer.AI. Buat laporan analisis 2 bagian berdasarkan data ini.
+            - Konteks: ${JSON.stringify(formData)}
+            - Data CSV: \`\`\`${csvData}\`\`\`
+            Buatlah output JSON sesuai skema.
+            `;
+            const schema = {
+                type: "OBJECT",
+                properties: {
+                    diagnosisSummary: { type: "STRING", description: "Ringkasan diagnosa performa iklan (2-3 kalimat)." },
+                    mainProblems: { type: "ARRAY", items: { type: "STRING" }, description: "Bullet point 3-5 masalah utama." },
+                }
+            };
+            return makeApiCall(prompt, schema);
+        }
+
+        async function getPlanningReport(formData) {
+            const prompt = `
+            Anda adalah AdFixer.AI. Buat rencana & kesimpulan 2 bagian berdasarkan konteks ini.
+            - Konteks: ${JSON.stringify(formData)}
+            Buatlah output JSON sesuai skema.
+            `;
+            const schema = {
+                type: "OBJECT",
+                properties: {
+                    splitTestPlan: { type: "ARRAY", items: { type: "OBJECT", properties: { day: { type: "STRING" }, experiment: { type: "STRING" }, goal: { type: "STRING" } } } },
+                    conclusion: { type: "STRING", description: "Paragraf penutup berisi kesimpulan & langkah selanjutnya." },
+                }
+            };
+            return makeApiCall(prompt, schema);
+        }
+
+        async function getCreativeReport(formData) {
+            const octavePersona = `You are OCTAVE // TextStopper Edition — a rebel-mentor AI. Your language is Indonesian, with a 'jaded warung kopi' tone - brutal, ringkas, absurd. Use the Split Shock Structure: [HOOK SINGKAT], [KALIMAT ABSURD ATAU MIKIR], [CTA BRUTAL]. Avoid safe words. Map HOOK to headline, BODY to subheadline, and CTA to cta.`;
+            const prompt = `
+            Anda adalah AdFixer.AI, seorang ahli strategi iklan yang provokatif. Buat rekomendasi iklan 2 bagian berdasarkan konteks ini.
+
+            **Konteks Pengguna:**
+            - Konteks: ${JSON.stringify(formData)}
+
+            **Instruksi Wajib untuk Rekomendasi Iklan (adRecommendations):**
+            - **Nada & Gaya:** Gunakan bahasa yang **memicu (triggering), kontroversial, dan satir**. Terapkan ini pada SEMUA rekomendasi iklan (headline, subheadline, cta, script).
+            - **Struktur:** Buat TEPAT 2 rekomendasi iklan gambar dan 1 iklan video.
+            - **Adaptasi Gaya:**
+                - Jika Gaya 'Storytelling', sampaikan sindiran dan kontroversi melalui cerita.
+                - Jika Gaya 'Strike', ADOPSI PERSONA INI: "${octavePersona}" untuk menyampaikan pesan secara brutal dan langsung.
+
+            **Instruksi Wajib untuk Prompt Gambar (imageRecommendations):**
+            - **Subjek:** Harus secara eksplisit menyebutkan **"orang Indonesia"** atau subjek khas Indonesia.
+            - **Detail:** Berikan deskripsi yang **sangat detail** mengenai suasana, ekspresi, pakaian, dan latar.
+            - **Rasio:** Pastikan setiap prompt diakhiri dengan frasa **"--ar 4:5"**.
+            - **Jumlah:** Buat TEPAT 2 prompt gambar untuk 2 iklan gambar.
+
+            **PENTING:** Hasilkan output HANYA dalam format JSON yang valid sesuai skema.
+            `;
+            const schema = {
+                type: "OBJECT",
+                properties: {
+                    adRecommendations: {
+                        type: "OBJECT", properties: {
+                            imageAds: { type: "ARRAY", items: { type: "OBJECT", properties: { headline: { type: "STRING" }, subheadline: { type: "STRING" }, cta: { type: "STRING" } } } },
+                            videoAd: { type: "OBJECT", properties: { title: { type: "STRING" }, script: { type: "STRING" } } }
+                        }
+                    },
+                    imageRecommendations: { type: "ARRAY", items: { type: "OBJECT", properties: { adName: { type: "STRING" }, prompt: { type: "STRING" } } } }
+                }
+            };
+            return makeApiCall(prompt, schema);
+        }
+
+        function displayReport(data) {
+            let html = '';
+            
+            // 1. Diagnosis Summary
+            html += `<h2 class="report-section-title">1️⃣ Ringkasan Diagnosa</h2><p>${data.diagnosisSummary ?? 'Data tidak tersedia.'}</p>`;
+
+            // 2. Main Problems
+            html += `<h2 class="report-section-title">2️⃣ Masalah Utama yang Ditemukan</h2><ul>`;
+            (data.mainProblems ?? []).forEach(problem => { html += `<li>${problem}</li>`; });
+            html += `</ul>`;
+
+            // 3. Split Test Plan
+            html += `<h2 class="report-section-title">3️⃣ Rencana Split Test 3 Hari ke Depan</h2><table><thead><tr><th>Hari</th><th>Tes Eksperimen</th><th>Tujuan</th></tr></thead><tbody>`;
+            (data.splitTestPlan ?? []).forEach(plan => {
+                html += `<tr><td>${plan.day ?? ''}</td><td>${plan.experiment ?? ''}</td><td>${plan.goal ?? ''}</td></tr>`;
+            });
+            html += `</tbody></table>`;
+            
+            // 4. Conclusion
+            html += `<h2 class="report-section-title">4️⃣ Kesimpulan & Arah Tindakan</h2><p>${data.conclusion ?? 'Data tidak tersedia.'}</p>`;
+
+            // 5. Ad Recommendations
+            html += `<h2 class="report-section-title">5️⃣ Rekomendasi Iklan</h2>`;
+            const ads = data.adRecommendations;
+            (ads?.imageAds ?? []).forEach((ad, index) => {
+                html += `<div class="ad-recommendation-card"><p class="ad-title">Iklan Gambar ${index + 1}</p>
+                    <p><strong>Headline:</strong> ${ad.headline ?? 'N/A'}<br>
+                    <strong>Sub-Headline:</strong> ${ad.subheadline ?? 'N/A'}<br>
+                    <strong>CTA:</strong> ${ad.cta ?? 'N/A'}</p></div>`;
+            });
+            if (ads?.videoAd) {
+                html += `<div class="ad-recommendation-card"><p class="ad-title">Iklan Video 1</p>
+                    <p><strong>Judul:</strong> ${ads.videoAd.title ?? 'N/A'}<br>
+                    <strong>Script:</strong><br>${(ads.videoAd.script ?? 'N/A').replace(/\n/g, '<br>')}</p></div>`;
+            }
+
+            // 6. Image Recommendations
+            html += `<h2 class="report-section-title">6️⃣ Rekomendasi Prompt Gambar</h2>`;
+            (data.imageRecommendations ?? []).forEach(img => {
+                 html += `<div class="ad-recommendation-card"><p class="ad-title">${img.adName ?? 'Prompt Gambar'}</p>
+                    <p class="font-mono text-sm">${img.prompt ?? 'N/A'}</p></div>`;
+            });
+
+            reportContent.innerHTML = html;
+            reportContainer.classList.remove('hidden');
+        }
+        
+        function downloadReportAsPDF() {
+            const { jsPDF } = window.jspdf;
+            const container = document.getElementById('report-container');
+            
+            html2canvas(container, { 
+                scale: 2, 
+                useCORS: true,
+                width: container.scrollWidth,
+                height: container.scrollHeight
+            }).then(canvas => {
+                const imgData = canvas.toDataURL('image/png');
+                const pdf = new jsPDF({
+                    orientation: 'p',
+                    unit: 'mm',
+                    format: 'a4'
+                });
+                const imgProps= pdf.getImageProperties(imgData);
+                const pdfWidth = pdf.internal.pageSize.getWidth();
+                const pageHeight = pdf.internal.pageSize.getHeight();
+                const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+                let heightLeft = pdfHeight;
+                let position = 0;
+                
+                pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, pdfHeight);
+                heightLeft -= pageHeight;
+                
+                while (heightLeft > 0) {
+                  position = -heightLeft;
+                  pdf.addPage();
+                  pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, pdfHeight);
+                  heightLeft -= pageHeight;
+                }
+                pdf.save('AdFixer.AI-Laporan.pdf');
+            });
+        }
+        
+        function displayError(message) {
+            errorText.textContent = message;
+            errorMessage.classList.remove('hidden');
+            placeholder.classList.add('hidden');
+            loader.classList.add('hidden');
+        }
+
+        function resetUI() {
+            errorMessage.classList.add('hidden');
+            reportContainer.classList.add('hidden');
+            reportContent.innerHTML = '';
+            placeholder.classList.remove('hidden');
+        }
+
+    </script>
+</body>
+</html>
